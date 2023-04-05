@@ -14,11 +14,11 @@ pd.set_option("expand_frame_repr", False)
 pd.set_option('display.max_colwidth', None)
 5
 # region ПУТЬ ДОПАПКИ С ФАЙЛАМИ
-# PUT = "D:\\Python\\Dashboard\\"
-PUT = "C:\\Users\\lebedevvv\\Desktop\\Dashboard\\"
+PUT = "D:\\Python\\Dashboard\\"
+#PUT = "C:\\Users\\lebedevvv\\Desktop\\Dashboard\\"
 
-# PUT_PROD = PUT + "ПУТЬ ДО ФАЙЛОВ С НОВЫМИ ФАЙЛАМИ\\"
-PUT_PROD = "C:\\Users\\lebedevvv\\Desktop\\Показатели ФРС\\"
+PUT_PROD = PUT + "ПУТЬ ДО ФАЙЛОВ С НОВЫМИ ФАЙЛАМИ\\"
+#PUT_PROD = "C:\\Users\\lebedevvv\\Desktop\\Показатели ФРС\\"
 # endregion
 
 # region комементарии

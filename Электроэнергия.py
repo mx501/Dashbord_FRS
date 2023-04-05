@@ -31,16 +31,10 @@ def to_exel(x, name):
     # Сохранение файла
     workbook.save(PUT + "TEMP\\" + name + ".xlsx")
 
-
-        #x.to_excel(PUT + "TEMP\\" + name+ ".xlsx", index=False)
-
 FINREZ = pd.read_csv(PUT + "RESULT\\" + "Финрез_Обработанный.csv", sep=";", encoding='ANSI', parse_dates=['дата'], dayfirst=True, low_memory=False)
 
 FINREZ = FINREZ.loc[(FINREZ['статья'] == '2.3.1. Электроэнергия') &(FINREZ['канал'] == 'ФРС')]
 FINREZ = FINREZ[["дата","магазин","значение_фрс"]]
-
-
-#df_filtered = FINREZ[(FINREZ['дата'].dt.year == 2022) | (FINREZ['дата'].dt.year == 2023)]
 
 FINREZ_2023 =FINREZ.copy()
 
