@@ -751,7 +751,7 @@ class PROGNOZ:
 # NEW().Dat_nalog_kanal()
 
 #NEW().Obnovlenie()
-#NEW().Finrez()
+NEW().Finrez()
 PROGNOZ().SALES_obrabotka()
 
 
