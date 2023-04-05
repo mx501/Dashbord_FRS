@@ -12,7 +12,7 @@ import gc
 import numpy as np
 pd.set_option("expand_frame_repr", False)
 pd.set_option('display.max_colwidth', None)
-
+пра
 # region ПУТЬ ДОПАПКИ С ФАЙЛАМИ
 # PUT = "D:\\Python\\Dashboard\\"
 PUT = "C:\\Users\\lebedevvv\\Desktop\\Dashboard\\"
