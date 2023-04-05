@@ -13,22 +13,14 @@ from datetime import datetime, timedelta, time
 
 PUT = "D:\\Python\\Dashboard\\"
 def to_exel(x, name):
-    import numbers
     x.to_excel(PUT + "TEMP\\" + name + ".xlsx", index=False)
-
-    # Открытие файла
     workbook = openpyxl.load_workbook(PUT + "TEMP\\" + name + ".xlsx")
-    # Выбор листа
     worksheet = workbook.active
-    # Установка ширины столбца A на 30 символов, а остальных на 20 символов
     worksheet.column_dimensions['A'].width = 28
-
     for col in worksheet.columns:
         if col[0].column != 1:
             col_letter = col[0].column_letter
             worksheet.column_dimensions[col_letter].width = 15
-
-    # Сохранение файла
     workbook.save(PUT + "TEMP\\" + name + ".xlsx")
 
 FINREZ = pd.read_csv(PUT + "RESULT\\" + "Финрез_Обработанный.csv", sep=";", encoding='ANSI', parse_dates=['дата'], dayfirst=True, low_memory=False)

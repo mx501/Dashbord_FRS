@@ -23,9 +23,11 @@ PUT_PROD = PUT + "ПУТЬ ДО ФАЙЛОВ С НОВЫМИ ФАЙЛАМИ\\"
 
 # region комементарии
 '''обновить все данные'''
-'''создать временные файлы финреза, продаж, минимальных дат'''
-
-
+'''мини дашборд для ту'''
+'''Разделить в исходников на хозы и не'''
+'''аномальные снижения рост отсл добавить'''
+'''Ошибки по стокам и статьям'''
+'''чеков на сет'''
 # endregion
 
 class RENAME:
@@ -286,6 +288,7 @@ class NEW:
                 ["дата", 'магазин', 'режим налогообложения', 'канал', 'канал на последний закрытый период']]
             DOC().to_TEMP(x=FINREZ_MAX, name="Дата_канал_налог.csv")
             print("Сохранено - Дата_канал_налог.csv")
+            # добавление закуп товара с НДС
             FINREZ["Закуп товара общий, руб с НДС"] = FINREZ["1.1.Закуп товара (МКП и КП), руб с НДС"] + \
                                                       FINREZ["1.2.Закуп товара (сопутка), руб с НДС"]
             FINREZ.loc[(FINREZ["канал"] == "ФРС") & (FINREZ["режим налогообложения"] == "упрощенка"),
@@ -670,85 +673,74 @@ class PROGNOZ:
                              colour="#F8C9CE"):
                 if ((file.split('.')[-1]) == 'txt'):
                     pyt_txt = os.path.join(rootdir, file)
-                    PROD_SVOD_00 = pd.read_csv(pyt_txt, sep="\t", encoding='utf-8', parse_dates=['По дням'],
-                                               dayfirst=True)
-                    lg = ('Выручка', "Количество продаж", "ВесПродаж", "Прибыль", "СписРуб", "Себестоимость")
+                    PROD_SVOD_00 = pd.read_csv(pyt_txt, sep="\t", encoding='utf-8', parse_dates=['дата'],skiprows=1,
+                                               dayfirst=True, names=("магазин","номенклатура","дата","количество_продаж",
+                                                                     "вес_продаж","Закуп товара общий, руб с НДС", "Выручка Итого, руб с НДС", "Наценка Общая, руб с НДС","СписРуб","Списания, кг"))
+                    PROD_SVOD_00 = PROD_SVOD_00.drop(["Списания, кг", "количество_продаж"], axis=1)
+                    lg = ("Выручка Итого, руб с НДС", "Наценка Общая, руб с НДС",  "СписРуб", "Закуп товара общий, руб с НДС")
                     for e in lg:
                         PROD_SVOD_00[e] = PROD_SVOD_00[e].str.replace(" ", "")
                         PROD_SVOD_00[e] = PROD_SVOD_00[e].str.replace(",", ".")
                         PROD_SVOD_00[e] = PROD_SVOD_00[e].str.replace(" ", "")
                         PROD_SVOD_00[e] = PROD_SVOD_00[e].astype("float")
-                        PROD_SVOD_00['Склад магазин.Наименование'] = PROD_SVOD_00['Склад магазин.Наименование'].astype(
+                        PROD_SVOD_00["магазин"] = PROD_SVOD_00["магазин"].astype(
                             "category")
-                        PROD_SVOD_00['Номенклатура'] = PROD_SVOD_00['Номенклатура'].astype("str")
+                        PROD_SVOD_00['номенклатура'] = PROD_SVOD_00['номенклатура'].astype("str")
                         PODAROK = ("Подарочная карта КМ 500р+ конверт", "Подарочная карта КМ 1000р+ конверт",
                                    "подарочная карта КМ 500 НОВАЯ",
                                    "подарочная карта КМ 1000 НОВАЯ")
                         for x in PODAROK:
-                            PROD_SVOD_00 = PROD_SVOD_00.loc[PROD_SVOD_00['Номенклатура'] != x]
+                            PROD_SVOD_00 = PROD_SVOD_00.loc[PROD_SVOD_00['номенклатура'] != x]
                     PROD_SVOD = pd.concat([PROD_SVOD, PROD_SVOD_00], axis=0)
                 gc.enable()
-                PROD_SVOD_00 = pd.DataFrame()
         # Создание столбцов Списания хозы и списания без хозов
         Hoz = RENAME().HOZY()
-        mask = PROD_SVOD['Номенклатура'].isin(Hoz)
-        PROD_SVOD.loc[mask, 'СписРуб_ХОЗЫ'] = PROD_SVOD.loc[mask, 'СписРуб']
+        mask = PROD_SVOD['номенклатура'].isin(Hoz)
+        PROD_SVOD.loc[mask, "2.6. Хозяйственные товары"] = PROD_SVOD.loc[mask, 'СписРуб']
         PROD_SVOD.loc[mask, 'СписРуб'] = np.nan
-        PROD_SVOD['СписРуб_ХОЗЫ'] = PROD_SVOD['СписРуб_ХОЗЫ'].astype("float")
+        PROD_SVOD["2.6. Хозяйственные товары"] = PROD_SVOD["2.6. Хозяйственные товары"].astype("float")
         PROD_SVOD['СписРуб'] = PROD_SVOD['СписРуб'].astype("float")
-        # region ГРУППИРОВКА ТАБЛИЦЫ(Без номенклатуры по дням)
-        PROD_SVOD = PROD_SVOD.rename(
-            columns={"По дням": "ДАТА", 'Выручка': "Выручка Итого, руб с НДС",
-                     'Склад магазин.Наименование': "!МАГАЗИН!",
-                     'СписРуб': "2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)",
-                     "СписРуб_ХОЗЫ": "2.6. Хозяйственные товары",
-                     "Себестоимость": "Закуп товара (МКП, КП, сопутка), руб c НДС",
-                     "Прибыль": "Наценка Общая, руб"})
 
-        PROD_SVOD = PROD_SVOD.groupby(["ДАТА", "!МАГАЗИН!"], as_index=False) \
-            .aggregate({"Выручка Итого, руб с НДС": "sum", "Количество продаж": "sum", "ВесПродаж": "sum",
-                        "Наценка Общая, руб": "sum",
+        # region ГРУППИРОВКА ТАБЛИЦЫ(Без номенклатуры по дням)
+        PROD_SVOD = PROD_SVOD.rename(columns={'СписРуб': "2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)"})
+        PROD_SVOD = PROD_SVOD.groupby(["дата", "магазин"], as_index=False) \
+            .aggregate({"Выручка Итого, руб с НДС": "sum",
+                        "Наценка Общая, руб с НДС": "sum",
                         "2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)": "sum",
-                        "2.6. Хозяйственные товары": "sum", "Закуп товара (МКП, КП, сопутка), руб c НДС": "sum"}) \
+                        "2.6. Хозяйственные товары": "sum", "Закуп товара общий, руб с НДС": "sum"}) \
             .sort_values("Выручка Итого, руб с НДС", ascending=False)
         # endregion
         # region ФИЛЬТРАЦИЯ ТАБЛИЦЫ > МАКС ДАТЫ КАЛЕНДАРЯ И выручка > 0
         PROD_SVOD = PROD_SVOD.loc[PROD_SVOD["Выручка Итого, руб с НДС"] > 0]
-        PROD_SVOD["Месяц"] = PROD_SVOD["ДАТА"]
-        PROD_SVOD.loc[~PROD_SVOD["Месяц"].dt.is_month_start, "Месяц"] = PROD_SVOD["Месяц"] - MonthBegin()
-        PROD_SVOD["НОМЕР МЕСЯЦА"] = PROD_SVOD["ДАТА"].dt.month
-        PROD_SVOD = PROD_SVOD.loc[PROD_SVOD["НОМЕР МЕСЯЦА"] > finrez_max_month]
+        PROD_SVOD["месяц"] = PROD_SVOD["дата"]
+        PROD_SVOD.loc[~PROD_SVOD["месяц"].dt.is_month_start, "месяц"] = PROD_SVOD["месяц"] - MonthBegin()
+        PROD_SVOD["номер месяца"] = PROD_SVOD["дата"].dt.month
+        PROD_SVOD = PROD_SVOD.loc[PROD_SVOD["номер месяца"] > finrez_max_month]
         PROD_SVOD = PROD_SVOD.reset_index(drop=True)
         # endregion
         # region ГРУПИРОВКА ПО МЕСЯЦАМ
-        PROD_SVOD = PROD_SVOD.groupby(["Месяц", "!МАГАЗИН!"], as_index=False) \
+        PROD_SVOD = PROD_SVOD.groupby(["месяц", "магазин"], as_index=False) \
             .aggregate(
-            {"ДАТА": "nunique", "Выручка Итого, руб с НДС": "sum", "Количество продаж": "sum", "ВесПродаж": "sum",
-             "Наценка Общая, руб": "sum",
+            {"дата": "nunique", "Выручка Итого, руб с НДС": "sum",
+             "Наценка Общая, руб с НДС": "sum",
              "2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)": "sum", "2.6. Хозяйственные товары": "sum",
-             "Закуп товара (МКП, КП, сопутка), руб c НДС": "sum"}) \
-            .sort_values("!МАГАЗИН!", ascending=False)
+             "Закуп товара общий, руб с НДС": "sum"}) \
+            .sort_values("магазин", ascending=False)
 
-        PROD_SVOD = PROD_SVOD.rename(
-            columns={'Склад магазин.Наименование': "!МАГАЗИН!", 'ДАТА': "Факт отработанных дней"})
-        PROD_SVOD = PROD_SVOD.rename(columns={'Месяц': 'дата'})
-        print(PROD_SVOD)
+        PROD_SVOD = PROD_SVOD.rename(columns={'дата': "факт отработанных дней"})
+        PROD_SVOD = PROD_SVOD.rename(columns={'месяц': 'дата'})
         # endregion
         # redion добавление ставки ндс вычисление выручки без ндс
         nds = NEW().Stavka_nds_Kanal()
-        PROD_SVOD = PROD_SVOD.merge(nds, on=["дата", "!МАГАЗИН!"], how="left")
+        PROD_SVOD = PROD_SVOD.merge(nds, on=["дата", "магазин"], how="left")
         PROD_SVOD["Выручка Итого, руб без НДС"] = PROD_SVOD["Выручка Итого, руб с НДС"] * PROD_SVOD[
             "ставка выручка ндс"]
-        PROD_SVOD["Закуп товара (МКП, КП, сопутка), руб без НДС"] = PROD_SVOD[
-                                                                        "Закуп товара (МКП, КП, сопутка), руб c НДС"] * \
-                                                                    PROD_SVOD['ставка закуп ндс']
-        PROD_SVOD["2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)"] = PROD_SVOD[
-                                                                                        "2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)"] * \
-                                                                                    PROD_SVOD[
-                                                                                        'ставка списание без хозов ндс']
+        PROD_SVOD["Закуп товара общий, руб с НДС"] = PROD_SVOD["Закуп товара общий, руб с НДС"] * PROD_SVOD['ставка закуп ндс']
+        PROD_SVOD["2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)"] = PROD_SVOD["2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)"] * PROD_SVOD['ставка списание без хозов ндс']
         PROD_SVOD['2.5.2. НЕУ'] = PROD_SVOD["2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)"] * 0.15
         PROD_SVOD["2.6. Хозяйственные товары"] = PROD_SVOD["2.6. Хозяйственные товары"] * PROD_SVOD["хозы ставка ндс"]
         PROD_SVOD = PROD_SVOD.reset_index(drop=True)
+        print(PROD_SVOD)
         # endregion
         DOC().to_TEMP(x=PROD_SVOD, name="Временный файл_продаж.csv")
         return PROD_SVOD
@@ -758,8 +750,8 @@ class PROGNOZ:
 
 # NEW().Dat_nalog_kanal()
 
-NEW().Obnovlenie()
-NEW().Finrez()
+#NEW().Obnovlenie()
+#NEW().Finrez()
 PROGNOZ().SALES_obrabotka()
 
 
