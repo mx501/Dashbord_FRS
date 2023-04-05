@@ -10,7 +10,6 @@ import math
 import gc
 # from memory_profiler import profile
 import numpy as np
-ffffff
 pd.set_option("expand_frame_repr", False)
 pd.set_option('display.max_colwidth', None)
 
