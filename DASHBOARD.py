@@ -47,8 +47,6 @@ class RENAME:
 
     '''блок хозы'''
 """чтение файлов для замены назани магазинов и базы номенклатуры хоз оваров"""
-
-
 class DOC:
     def to(self, x, name):
         x.to_csv(PUT + "RESULT\\" + name, encoding="ANSI", sep=';',
