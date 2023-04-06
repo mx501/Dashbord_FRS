@@ -295,14 +295,14 @@ class NEW:
                 value_name="значение")
             # очистка от мусора
             FINREZ['значение'] = FINREZ['значение'].astype("str")
-            FINREZ['значение'] = FINREZ['значение'].str.replace(" ", "")
+            FINREZ['значение'] = FINREZ['значение'].str.replace(u'\xa0', "")
             FINREZ['значение'] = np.where((FINREZ['значение'] == 0), "nan", FINREZ['значение'])
             FINREZ['значение'] = np.where((FINREZ['значение'] == "-"), "nan", FINREZ['значение'])
             FINREZ['значение'] = np.where((FINREZ['значение'] == "#ДЕЛ/0!"), "nan", FINREZ['значение'])
             FINREZ['значение'] = np.where((FINREZ['значение'] == "#ЗНАЧ!"), "nan", FINREZ['значение'])
             FINREZ['значение'] = FINREZ['значение'].str.replace(",", ".")
             FINREZ = FINREZ.loc[(FINREZ['значение'] != "nan")]
-            FINREZ['значение']  = FINREZ.str.replace(' ', "")
+
             FINREZ['значение'] = FINREZ['значение'].astype("float")
             FINREZ = FINREZ.loc[(FINREZ['значение'] != 0)]
             # округление
@@ -756,7 +756,6 @@ class PROGNOZ:
         #PROD_SVOD = pd.concat([PROD_SVOD, canal], axis=0)
         #PROD_SVOD = PROD_SVOD.reset_index(drop=True)
         # endregion
-        print(PROD_SVOD)
         # region РАЗВОРОТ ТАБЛИЦЫ ПРОДАЖ
         PROD_SVOD = PROD_SVOD.drop(columns={"ставка выручка ндс", "ставка списание без хозов ндс", "питание ставка ндс","хозы ставка ндс","ставка закуп ндс",})
         PROD_SVOD = PROD_SVOD.melt(
@@ -766,18 +765,20 @@ class PROGNOZ:
         PROD_SVOD["значение"] = PROD_SVOD["значение"].astype("float")
         PROD_SVOD["факт отработанных дней"] = PROD_SVOD["факт отработанных дней"].astype("float")
         # region добавление прогноза
-        PROD_SVOD["значение"] = ((PROD_SVOD["значение"] / PROD_SVOD["факт отработанных дней"]) * PROD_SVOD[
-            "Осталось дней продаж"]) + PROD_SVOD["значение"]
-        PROD_SVOD["значение"] = PROD_SVOD["значение"].round(2)
+
+        PROD_SVOD = PROD_SVOD.rename(columns={"значение": "значение_факт" })
+        PROD_SVOD["значение"] = ((PROD_SVOD["значение_факт"] / PROD_SVOD["факт отработанных дней"]) * PROD_SVOD[
+            "Осталось дней продаж"]) + PROD_SVOD["значение_факт"]
+        PROD_SVOD[["значение","значение_факт"]] = PROD_SVOD[["значение","значение_факт"]].round(2)
         # endregion
         PROD_SVOD_00 = PROD_SVOD.groupby(["магазин", "дата"])['канал'].nunique().reset_index()
-        PROD_SVOD_00 = PROD_SVOD_00.rename(columns={'канал': 'канал_кол'})
+        PROD_SVOD_00 = PROD_SVOD_00.rename(columns={'канал': 'канал_кол', })
         PROD_SVOD = pd.merge(PROD_SVOD, PROD_SVOD_00[['магазин', 'дата', 'канал_кол']], on=['магазин', 'дата'], how='left')
         sp  = ["Выручка Итого, руб без НДС", "Закуп товара (МКП, КП, сопутка), руб без НДС", "2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)", "2.5.2. НЕУ","2.6. Хозяйственные товары"]
         for i in sp:
             PROD_SVOD.loc[(PROD_SVOD["канал"] == "ФРС") & (
                     PROD_SVOD['канал_кол'] == 2) & (PROD_SVOD["cтатья"] == i), "значение" ] = 0
-
+        print(PROD_SVOD)
         DOC().to_TEMP(x=PROD_SVOD, name="PROD_SVOD_PROGNOZ_TEMP.csv")
         return PROD_SVOD
     """функция за обработку данных"""
