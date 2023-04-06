@@ -743,14 +743,69 @@ class PROGNOZ:
         DOC().to_TEMP(x=PROD_SVOD, name="Временный файл_продаж.csv")
         return PROD_SVOD
 
+    def Sales_prognoz(self):
+        PROD_SVOD = pd.read_csv(PUT + "TEMP\\" + "Временный файл_продаж.csv",
+                                sep=";", encoding='ANSI', parse_dates=['дата'], dayfirst=True)
+        print("расчет прогноза продаж")
+        # region ДОБАВЛЕНИЕ ДАННЫХ КАЛЕНДАРЯ
+        Calendar = pd.read_excel(PUT + "DATA_2\\Календарь.xlsx", sheet_name="Query1")
+        Calendar.loc[~Calendar["дата"].dt.is_month_start, "дата"] = Calendar["дата"] - MonthBegin()
+        Calendar = Calendar.groupby(["ГОД", "НОМЕР МЕСЯЦА", "дата"], as_index=False) \
+            .aggregate({'ДНЕЙ В МЕСЯЦЕ': "max"}) \
+            .sort_values("ГОД", ascending=False)
+        PROD_SVOD = PROD_SVOD.rename(columns={'Склад магазин.Наименование': "!МАГАЗИН!"})
+        PROD_SVOD = PROD_SVOD.rename(columns={'Месяц': 'дата'})
+        PROD_SVOD = PROD_SVOD.merge(Calendar, on=["дата"], how="left")
+        PROD_SVOD["Осталось дней продаж"] = PROD_SVOD["ДНЕЙ В МЕСЯЦЕ"] - PROD_SVOD["факт отработанных дней"]
+        dd = PROD_SVOD.groupby('дата')['Осталось дней продаж'].aggregate('min')
+        PROD_SVOD = PROD_SVOD.merge(dd, on=["дата"], how="left")
+        PROD_SVOD.loc[
+            PROD_SVOD["Осталось дней продаж_x"] > PROD_SVOD["Осталось дней продаж_y"], 'Осталось дней продаж_x'] = \
+        PROD_SVOD["Осталось дней продаж_y"]
+        PROD_SVOD = PROD_SVOD.drop(columns={"Осталось дней продаж_y", "НОМЕР МЕСЯЦА", "ГОД"})
+        PROD_SVOD = PROD_SVOD.rename(columns={'Осталось дней продаж_x': "Осталось дней продаж"})
+
+        # region ДОБАВЛЕНИЕ КАНАЛОВ ОБОБЩАЮЩИХ В ТАБЛИЦУ ПРОДАЖ
+        #canal = pd.read_excel(PUT + "DATA_2\\" + "Каналы.xlsx", sheet_name="Лист1")
+        #canal["дата"] = canal["дата"].astype("datetime64[ns]")
+        #PROD_SVOD = pd.concat([PROD_SVOD, canal], axis=0)
+        #PROD_SVOD = PROD_SVOD.reset_index(drop=True)
+        # endregion
+        # region РАЗВОРОТ ТАБЛИЦЫ ПРОДАЖ
+        PROD_SVOD = PROD_SVOD.drop(columns={"ставка выручка ндс", "ставка списание без хозов ндс", "питание ставка ндс","хозы ставка ндс","ставка закуп ндс",})
+        PROD_SVOD = PROD_SVOD.melt(
+            id_vars=["дата", "магазин", "ДНЕЙ В МЕСЯЦЕ", "Осталось дней продаж", "факт отработанных дней","режим налогообложения","канал","канал на последний закрытый период"])
+        PROD_SVOD = PROD_SVOD.rename(columns={"variable": "cтатья", "value": "значение"})
+        # endregion
+        PROD_SVOD["значение"] = PROD_SVOD["значение"].astype("float")
+        PROD_SVOD["факт отработанных дней"] = PROD_SVOD["факт отработанных дней"].astype("float")
+        # region добавление прогноза
+
+        PROD_SVOD = PROD_SVOD.rename(columns={"значение": "значение_факт" })
+        PROD_SVOD["значение"] = ((PROD_SVOD["значение_факт"] / PROD_SVOD["факт отработанных дней"]) * PROD_SVOD[
+            "Осталось дней продаж"]) + PROD_SVOD["значение_факт"]
+        PROD_SVOD[["значение","значение_факт"]] = PROD_SVOD[["значение","значение_факт"]].round(2)
+        # endregion
+        PROD_SVOD_00 = PROD_SVOD.groupby(["магазин", "дата"])['канал'].nunique().reset_index()
+        PROD_SVOD_00 = PROD_SVOD_00.rename(columns={'канал': 'канал_кол', })
+        PROD_SVOD = pd.merge(PROD_SVOD, PROD_SVOD_00[['магазин', 'дата', 'канал_кол']], on=['магазин', 'дата'], how='left')
+        sp  = ["Выручка Итого, руб без НДС", "Закуп товара (МКП, КП, сопутка), руб без НДС", "2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)", "2.5.2. НЕУ","2.6. Хозяйственные товары"]
+        for i in sp:
+            PROD_SVOD.loc[(PROD_SVOD["канал"] == "ФРС") & (
+                    PROD_SVOD['канал_кол'] == 2) & (PROD_SVOD["cтатья"] == i), "значение" ] = 0
+        print(PROD_SVOD)
+        DOC().to_TEMP(x=PROD_SVOD, name="PROD_SVOD_PROGNOZ_TEMP.csv")
+        return PROD_SVOD
+    """функция за обработку данных"""
+
 
 """обработка пути продаж формирование, групировка таблиц"""
 
 # NEW().Dat_nalog_kanal()
 
 #NEW().Obnovlenie()
-NEW().Finrez()
-PROGNOZ().SALES_obrabotka()
-
+#NEW().Finrez()
+#PROGNOZ().SALES_obrabotka()
+PROGNOZ().Sales_prognoz()
 
 
