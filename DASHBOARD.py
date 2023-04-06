@@ -20,7 +20,6 @@ PUT = "C:\\Users\\lebedevvv\\Desktop\\Dashboard\\"
 #PUT_PROD = PUT + "ПУТЬ ДО ФАЙЛОВ С НОВЫМИ ФАЙЛАМИ\\"
 PUT_PROD = "C:\\Users\\lebedevvv\\Desktop\\Показатели ФРС\\Продажи, Списания, Прибыль\\Текщий год\\"
 # endregion
-
 # region комементарии
 '''обновить все данные'''
 '''мини дашборд для ту'''
@@ -29,7 +28,6 @@ PUT_PROD = "C:\\Users\\lebedevvv\\Desktop\\Показатели ФРС\\Прод
 '''Ошибки по стокам и статьям'''
 '''чеков на сет'''
 # endregion
-
 class RENAME:
     def Rread(self):
         replacements = pd.read_excel(PUT + "DATA_2\\ДЛЯ ЗАМЕНЫ.xlsx",
@@ -47,8 +45,6 @@ class RENAME:
 
     '''блок хозы'''
 """чтение файлов для замены назани магазинов и базы номенклатуры хоз оваров"""
-
-
 class DOC:
     def to(self, x, name):
         x.to_csv(PUT + "RESULT\\" + name, encoding="ANSI", sep=';',
@@ -70,8 +66,6 @@ class DOC:
     def to_exel(self, x, name):
         x.to_excel(PUT + "TEMP\\" + name, index=False)
 """функция сохранения файлов по папкам"""
-
-
 class NEW:
     def STATYA(self):
         STATYA = pd.read_excel(PUT + "DATA_2\\" + "@СПРАВОЧНИК_СТАТЕЙ.xlsx",
@@ -308,6 +302,7 @@ class NEW:
             FINREZ['значение'] = np.where((FINREZ['значение'] == "#ЗНАЧ!"), "nan", FINREZ['значение'])
             FINREZ['значение'] = FINREZ['значение'].str.replace(",", ".")
             FINREZ = FINREZ.loc[(FINREZ['значение'] != "nan")]
+            FINREZ['значение']  = FINREZ.str.replace(' ', "")
             FINREZ['значение'] = FINREZ['значение'].astype("float")
             FINREZ = FINREZ.loc[(FINREZ['значение'] != 0)]
             # округление
@@ -463,9 +458,7 @@ class NEW:
             DOC().to_POWER_BI(x=FINREZ, name="Финрез_Обработанный.csv")
             print("Сохранено - Финрез_Обработанный.csv")
             return FINREZ
-
     '''обработка финреза итоговых значений'''
-
     def Obnovlenie(self):
         print("ОБНОВЛЕНИЕ ПРОДАЖ........\n")
         rng, replacements = RENAME().Rread()
@@ -496,9 +489,7 @@ class NEW:
                     read.to_excel(PUT_PROD + "ЧЕКИ\\2023\\" + file,
                                   index=False)
                 gc.enable()
-
     '''отвечает за загрузку и переименование новых данных продаж и чеков'''
-
     def NDS_vir(self):
         rng, replacements = RENAME().Rread()
         print("Обновление данных выручки ндс\n")
@@ -529,9 +520,7 @@ class NEW:
         vir_NDS["ПРОВЕРКАА"] = vir_NDS["ПРОДАЖИ С НДС"] * vir_NDS["ставка выручка ндс"]
         gc.enable()
         return vir_NDS
-
     '''отвечает за загрузку данных для  расчета ставки выручки ндс'''
-
     def NDS_spisania(self):
         rng, replacements = RENAME().Rread()
         print("Обновление данных списания без хозов ндс\n")
@@ -562,9 +551,7 @@ class NEW:
         Spisania["ПРОВЕРКАА"] = Spisania["ПРОДАЖИ С НДС"] * Spisania["ставка списание без хозов ндс"]
         gc.enable()
         return Spisania
-
     '''отвечает за загрузку данных для  расчета ставки списания без хозов ндс'''
-
     def NDS_pitanie(self):
         rng, replacements = RENAME().Rread()
         print("Обновление данных питание персонала ндс\n")
@@ -595,9 +582,7 @@ class NEW:
         Pitanie["ПРОВЕРКАА"] = Pitanie["ПРОДАЖИ С НДС"] * Pitanie["питание ставка ндс"]
         gc.enable()
         return Pitanie
-
     '''отвечает за загрузку данных для  расчета ставки питание с ндс'''
-
     def NDS_zakup(self):
         rng, replacements = RENAME().Rread()
         print("Обновление данных закуп ндс\n")
@@ -623,9 +608,7 @@ class NEW:
                     Zakup = pd.concat([Zakup, Zakup_00], axis=0)
                     gc.enable()
         return Zakup
-
     '''отвечает за загрузку данных для  расчета ставки питание с ндс'''
-
     def Stavka_nds_Kanal(self):
         Zakup = NEW().NDS_zakup()
         Dat_canal_nalg, finrez_max_month, finrez_max_data = NEW().Dat_nalog_kanal()
@@ -663,8 +646,6 @@ class NEW:
     '''отвечает за обьеденение ставок nds  в одну таблицу вычисление налога для упращенки'''
 '''отвечает первоначальную обработку, сохранение временных файлов для вычисления минимальной и максимальной даты,
 сохраненние вреенного файла с каналати и режимом налогобложения'''
-
-
 class PROGNOZ:
     def SALES_obrabotka(self):
         gc.enable()
@@ -739,21 +720,72 @@ class PROGNOZ:
         PROD_SVOD = PROD_SVOD.merge(nds, on=["дата", "магазин"], how="left")
         PROD_SVOD["Выручка Итого, руб без НДС"] = PROD_SVOD["Выручка Итого, руб с НДС"] * PROD_SVOD[
             "ставка выручка ндс"]
-        PROD_SVOD["Закуп товара общий, руб с НДС"] = PROD_SVOD["Закуп товара общий, руб с НДС"] * PROD_SVOD['ставка закуп ндс']
+        PROD_SVOD["Закуп товара общий, руб без НДС"] = PROD_SVOD["Закуп товара общий, руб с НДС"] * PROD_SVOD['ставка закуп ндс']
         PROD_SVOD["2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)"] = PROD_SVOD["2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)"] * PROD_SVOD['ставка списание без хозов ндс']
         PROD_SVOD['2.5.2. НЕУ'] = PROD_SVOD["2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)"] * 0.15
         PROD_SVOD["2.6. Хозяйственные товары"] = PROD_SVOD["2.6. Хозяйственные товары"] * PROD_SVOD["хозы ставка ндс"]
         PROD_SVOD = PROD_SVOD.reset_index(drop=True)
-        print(PROD_SVOD)
         # endregion
         DOC().to_TEMP(x=PROD_SVOD, name="Временный файл_продаж.csv")
         return PROD_SVOD
+    def Sales_prognoz(self):
+        PROD_SVOD = pd.read_csv(PUT + "TEMP\\" + "Временный файл_продаж.csv",
+                                sep=";", encoding='ANSI', parse_dates=['дата'], dayfirst=True)
+        print("расчет прогноза продаж")
+        # region ДОБАВЛЕНИЕ ДАННЫХ КАЛЕНДАРЯ
+        Calendar = pd.read_excel(PUT + "DATA_2\\Календарь.xlsx", sheet_name="Query1")
+        Calendar.loc[~Calendar["дата"].dt.is_month_start, "дата"] = Calendar["дата"] - MonthBegin()
+        Calendar = Calendar.groupby(["ГОД", "НОМЕР МЕСЯЦА", "дата"], as_index=False) \
+            .aggregate({'ДНЕЙ В МЕСЯЦЕ': "max"}) \
+            .sort_values("ГОД", ascending=False)
+        PROD_SVOD = PROD_SVOD.rename(columns={'Склад магазин.Наименование': "!МАГАЗИН!"})
+        PROD_SVOD = PROD_SVOD.rename(columns={'Месяц': 'дата'})
+        PROD_SVOD = PROD_SVOD.merge(Calendar, on=["дата"], how="left")
+        PROD_SVOD["Осталось дней продаж"] = PROD_SVOD["ДНЕЙ В МЕСЯЦЕ"] - PROD_SVOD["факт отработанных дней"]
+        dd = PROD_SVOD.groupby('дата')['Осталось дней продаж'].aggregate('min')
+        PROD_SVOD = PROD_SVOD.merge(dd, on=["дата"], how="left")
+        PROD_SVOD.loc[
+            PROD_SVOD["Осталось дней продаж_x"] > PROD_SVOD["Осталось дней продаж_y"], 'Осталось дней продаж_x'] = \
+        PROD_SVOD["Осталось дней продаж_y"]
+        PROD_SVOD = PROD_SVOD.drop(columns={"Осталось дней продаж_y", "НОМЕР МЕСЯЦА", "ГОД"})
+        PROD_SVOD = PROD_SVOD.rename(columns={'Осталось дней продаж_x': "Осталось дней продаж"})
 
+        # region ДОБАВЛЕНИЕ КАНАЛОВ ОБОБЩАЮЩИХ В ТАБЛИЦУ ПРОДАЖ
+        #canal = pd.read_excel(PUT + "DATA_2\\" + "Каналы.xlsx", sheet_name="Лист1")
+        #canal["дата"] = canal["дата"].astype("datetime64[ns]")
+        #PROD_SVOD = pd.concat([PROD_SVOD, canal], axis=0)
+        #PROD_SVOD = PROD_SVOD.reset_index(drop=True)
+        # endregion
+        print(PROD_SVOD)
+        # region РАЗВОРОТ ТАБЛИЦЫ ПРОДАЖ
+        PROD_SVOD = PROD_SVOD.drop(columns={"ставка выручка ндс", "ставка списание без хозов ндс", "питание ставка ндс","хозы ставка ндс","ставка закуп ндс",})
+        PROD_SVOD = PROD_SVOD.melt(
+            id_vars=["дата", "магазин", "ДНЕЙ В МЕСЯЦЕ", "Осталось дней продаж", "факт отработанных дней","режим налогообложения","канал","канал на последний закрытый период"])
+        PROD_SVOD = PROD_SVOD.rename(columns={"variable": "cтатья", "value": "значение"})
+        # endregion
+        PROD_SVOD["значение"] = PROD_SVOD["значение"].astype("float")
+        PROD_SVOD["факт отработанных дней"] = PROD_SVOD["факт отработанных дней"].astype("float")
+        # region добавление прогноза
+        PROD_SVOD["значение"] = ((PROD_SVOD["значение"] / PROD_SVOD["факт отработанных дней"]) * PROD_SVOD[
+            "Осталось дней продаж"]) + PROD_SVOD["значение"]
+        PROD_SVOD["значение"] = PROD_SVOD["значение"].round(2)
+        # endregion
+        PROD_SVOD_00 = PROD_SVOD.groupby(["магазин", "дата"])['канал'].nunique().reset_index()
+        PROD_SVOD_00 = PROD_SVOD_00.rename(columns={'канал': 'канал_кол'})
+        PROD_SVOD = pd.merge(PROD_SVOD, PROD_SVOD_00[['магазин', 'дата', 'канал_кол']], on=['магазин', 'дата'], how='left')
+        sp  = ["Выручка Итого, руб без НДС", "Закуп товара (МКП, КП, сопутка), руб без НДС", "2.5.1. Списание потерь (до ноября 19г НЕУ + Списание потерь)", "2.5.2. НЕУ","2.6. Хозяйственные товары"]
+        for i in sp:
+            PROD_SVOD.loc[(PROD_SVOD["канал"] == "ФРС") & (
+                    PROD_SVOD['канал_кол'] == 2) & (PROD_SVOD["cтатья"] == i), "значение" ] = 0
 
+        DOC().to_TEMP(x=PROD_SVOD, name="PROD_SVOD_PROGNOZ_TEMP.csv")
+        return PROD_SVOD
+    """функция за обработку данных"""
 """обработка пути продаж формирование, групировка таблиц"""
 
 # NEW().Dat_nalog_kanal()
 
 #NEW().Obnovlenie()
-#NEW().Finrez()
-PROGNOZ().SALES_obrabotka()
+NEW().Finrez()
+#PROGNOZ().SALES_obrabotka()
+PROGNOZ().Sales_prognoz()
