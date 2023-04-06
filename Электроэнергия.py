@@ -1,4 +1,4 @@
-import Dashbord_obrabotka_Finrez as fn
+import DASHBOARD as fn
 import pandas as pd
 import numpy as np
 import openpyxl
